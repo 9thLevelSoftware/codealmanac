@@ -58,7 +58,7 @@ Every bullet should name its source page. The agent can proceed after reading it
 
 The canonical memory must remain `.almanac/pages/` and `.almanac/topics.yaml`. A session-local observation cache can improve retrieval and recency, but it should not become the source of truth for project memory. [[wiki-lifecycle-operations]] and [[capture-flow]] still own durable writeback through Absorb and Garden.
 
-This boundary keeps the contrast with [[agentmemory-competitor]] sharp. Memory daemons win on automatic capture and recall, but they tend toward user-level memory stores and broad context injection. CodeAlmanac's differentiated path is cited, repo-local, file-aware constraint surfacing from a governed wiki.
+This boundary keeps the contrast with [[agentmemory-competitor]] and [[codex-supermemory]] sharp. Memory daemons and hosted hook integrations win on automatic capture and recall, but they tend toward user-level memory stores and broad context injection. CodeAlmanac's differentiated path is cited, repo-local, file-aware constraint surfacing from a governed wiki.
 
 ## MVP Implication
 

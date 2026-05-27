@@ -4,13 +4,15 @@ summary: The company-brain category frames CodeAlmanac as a codebase-scoped, loc
 topics: [product-positioning]
 sources:
   - /tmp/company-brain-research.md
+  - /Users/rohan/.codex/sessions/2026/05/19/rollout-2026-05-19T22-39-10-019e43e5-2148-7f80-a2f3-9823dae31139.jsonl
+  - /Users/rohan/.codex/sessions/2026/05/15/rollout-2026-05-15T01-30-45-019e2a1d-a038-7633-81ea-a1dfc6cb50bd.jsonl
   - /Users/rohan/.codex/sessions/2026/05/15/rollout-2026-05-15T02-37-42-019e2a5a-eb3c-7180-89fb-b5591b3c7d24.jsonl
   - https://www.ycombinator.com/rfs?year=2025
   - https://github.com/garrytan/gbrain
   - https://www.ycombinator.com/companies/hyper-4
   - https://www.ycombinator.com/launches/QKg-hyper-the-self-driving-company-brain
 status: active
-verified: 2026-05-15
+verified: 2026-05-20
 ---
 
 # Company Brain
@@ -55,11 +57,23 @@ The broader market splits into two camps.
 
 The primitive camp includes GBrain and CodeAlmanac. These systems are open-source or local-first, file-based, BYO-key, and agent-maintained. Their advantage is trust, inspectability, portability, and direct fit with technical teams that already review files in git.
 
-The memory-daemon camp includes [[agentmemory-competitor]]. These products compete for the same "agents should not need context re-explained" pain, but they use hook capture, memory databases, retrieval APIs, and context injection instead of a repo-owned wiki artifact.
+The memory-daemon camp includes [[agentmemory-competitor]], [[codex-supermemory]], and [[mem0]]. These products compete for the same "agents should not need context re-explained" pain, but they use hook capture, memory databases, retrieval APIs, and context injection instead of a repo-owned wiki artifact.
 
 The platform camp includes Hyper, Glean, Dust, Hebbia, Sana, Guru, and Notion AI. These products sell connectors, hosted ingestion, permission models, workflow surfaces, agent builders, or invisible context injection. Their advantage is breadth, deployment polish, enterprise administration, and lower day-one operational burden for teams that want to buy the system rather than maintain it.
 
 CodeAlmanac should not pitch as if these products do not exist. They validate the same category need. The differentiator is scope and control: CodeAlmanac is for the software-project memory that coding agents need before making changes, not for every Slack thread or CRM object in a company.
+
+## User Problem Boundary
+
+The memory products and CodeAlmanac overlap on the top-level pain: AI agents lack context across time. The durable positioning distinction has to name the subproblem, not only the storage artifact.
+
+Memory products such as [[codex-supermemory]], [[mem0]], and [[agentmemory-competitor]] primarily address "my agent forgets." They preserve user, session, project, and tool context so the next prompt can receive relevant remembered facts without manual search.
+
+CodeAlmanac addresses "my codebase forgets." The failure is not only that one agent lacks prior context; it is that architectural decisions, invariants, incident lessons, and rejected designs vanish into transcripts instead of becoming shared project memory. The buyer problem is strongest for teams, open-source repos, long-lived systems, multiple agents, PR review, onboarding, and any workflow where a remembered fact needs to be inspectable, cited, and tied to files.
+
+The 2026-05-20 product-feedback read validated that the current language is landing with the intended audience. Respondents echoed the project vocabulary around "why" behind code, tribal knowledge, design rationales, gotchas, institutional memory, and context drift. The in-repo markdown wiki also registered as a trust feature because it is durable, reviewable, and naturally fits PR review rather than hiding project knowledge in prompts or a vector database.
+
+This is why "repo-owned markdown" is a user-facing difference only when it changes the trust boundary. A personal or hosted memory layer can remember facts about a repo, but it is the wrong canonical source for knowledge that future contributors and agents must review, share, and preserve with the code. CodeAlmanac's wedge is institutional codebase memory: before an agent edits a file, it should see the reviewed constraints this repo already knows; after a session discovers something durable, that knowledge should become a Git-reviewable wiki diff.
 
 ## Technical Synthesis
 
@@ -95,4 +109,4 @@ The product experience should still move toward [[just-in-time-context-surfacing
 
 ## Related Pages
 
-[[pitch-deck-fundraising]] explains how this category should be compressed into an investor deck. [[agentmemory-competitor]] explains the strongest adjacent coding-agent memory product found in the 2026-05-15 comparison. [[just-in-time-context-surfacing]] explains the product mechanism that would make repo-owned memory automatic without becoming uncited memory injection. [[wiki-lifecycle-operations]] explains the Build, Absorb, and Garden operations that keep the wiki current. [[farzapedia]] explains an adjacent AI-maintained wiki reference whose synthesis-first writing rules shaped Almanac prompts.
+[[pitch-deck-fundraising]] explains how this category should be compressed into an investor deck. [[agentmemory-competitor]] explains the strongest adjacent local-daemon coding-agent memory product found in the 2026-05-15 comparison. [[codex-supermemory]] explains the lighter Codex hook integration that makes Supermemory feel immediate after install. [[mem0]] explains an operational memory-store competitor whose extraction and retrieval model clarifies the difference between runtime recall and repo-governed project knowledge. [[just-in-time-context-surfacing]] explains the product mechanism that would make repo-owned memory automatic without becoming uncited memory injection. [[wiki-lifecycle-operations]] explains the Build, Absorb, and Garden operations that keep the wiki current. [[farzapedia]] explains an adjacent AI-maintained wiki reference whose synthesis-first writing rules shaped Almanac prompts.

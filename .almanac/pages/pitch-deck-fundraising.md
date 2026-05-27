@@ -10,8 +10,9 @@ sources:
   - https://www.ycombinator.com/library/6Z-how-to-build-a-great-series-a-pitch-and-deck
   - https://news.crunchbase.com/venture/7-deadly-pitch-deck-sins-according-to-a-vc/
   - https://www.docsend.com/
+  - https://speedrun.substack.com/p/what-we-look-for-in-applications
 status: active
-verified: 2026-05-14
+verified: 2026-05-20
 ---
 
 # Pitch Deck Fundraising
@@ -42,6 +43,10 @@ This is a spine, not a required slide count. YC's seed guidance allows several s
 
 At seed, the deck should lean on team, insight, narrative, product clarity, and early proof. YC's seed guidance treats most early-stage details as thin by nature, so pretending that CodeAlmanac has mature enterprise metrics before it does would weaken the story.
 
+The 2026-01-14 a16z speedrun application read raises the bar on how CodeAlmanac should present the earliest stage story. The SR006 reviewers considered more than 19,000 startup pitches and selected under 0.4%, so the deck and application should assume intense skim pressure and should make team, earned insight, validation work, and differentiation visible without requiring the reader to infer them.
+
+For CodeAlmanac, "validation" should not be reduced to revenue. Useful early evidence can include specific customer conversations, design partners, workflow pull from working engineering teams, willingness to pay for repo-owned memory, repeated agent-use pain, and market mapping across coding-agent users, devtool buyers, and adjacent memory products. The deck should show that the team has listened for the root problem before over-productizing the wiki solution.
+
 At Series A, the deck must shift toward traction. YC's Series A structure puts a traction teaser early and makes the in-depth traction section the heart of the deck. For CodeAlmanac, that means the proof section would need revenue, expansion, retention, active repo usage, workflow frequency, or similarly durable metrics over at least several months.
 
 ## Slide-Level Constraints
@@ -58,6 +63,10 @@ The business-model slide must state price level because price determines go-to-m
 
 The competition slide should acknowledge substitutes. Claiming no competition would signal that there is no market. The comparison should explain why CodeAlmanac's repo-local cultivated wiki is different from ordinary docs, chat history, agent memory, semantic code search, company-brain products, and knowledge-base products, and why that difference matters for repeated coding-agent work.
 
+The competition slide should not be a feature-checklist matrix. The speedrun guidance treats real competitive analysis as proof that founders understand the idea maze: who else is trying to solve the problem, why current substitutes exist, where they fail, and what CodeAlmanac uniquely knows about repo-owned project memory. For CodeAlmanac, that means explaining why prompt-time memory, vector search, docs, and company-brain tools do not replace cultivated pages with `files:`, topics, wikilinks, backlinks, health checks, and Git review.
+
+The team slide needs to explain why this team is unusually credible for agentic software work and developer trust. Speedrun reviewers flag weak team explanation as a common failure mode, and they look for founders who can show cofounder history, complementary roles, outlier projects, market learning, and evidence that they are studying company-building as well as product-building.
+
 The ask slide should say how much is being raised and what milestone the money buys. For a seed deck, the milestone should plausibly make the company Series-A ready. For a Series A deck, the use of funds should show that money is the bottleneck to scaling a working business, not a substitute for product-market fit.
 
 ## Design And Delivery Rules
@@ -68,6 +77,8 @@ Design should remove friction rather than signal ornament. YC's examples are int
 
 The appendix is the right place for detail. For CodeAlmanac that can include architecture, security posture, data locality, pricing sensitivity, cohort metrics, detailed financials, customer notes, or source research. Those details should not crowd the 10-15 slide core.
 
+The application and interview version of the story should be even tighter than the deck. Speedrun reviewers explicitly test whether founders can communicate a one-line value proposition, answer from several angles, and earn a longer conversation in roughly a 10-minute interview. CodeAlmanac should put the bottom line first: the codebase forgets expensive agent-discovered knowledge, and Almanac turns that knowledge into repo-owned memory future agents are required to consult.
+
 ## Failure Modes To Avoid
 
 CodeAlmanac's likely pitch-deck failure modes are predictable from the research:
@@ -76,8 +87,11 @@ CodeAlmanac's likely pitch-deck failure modes are predictable from the research:
 - Using generic AI-market claims instead of a specific project-memory pain.
 - Hiding the product behind prose instead of showing the repo/wiki/search/capture experience.
 - Claiming no competition because the exact repo-local wiki shape is unusual.
+- Using a competitor checklist instead of explaining the idea maze and CodeAlmanac's unique insight.
+- Burying why the team is special, what validation work has been done, or what the next 3-12 months will prove.
 - Using cumulative or vanity metrics when monthly or quarterly trend data is available.
 - Treating the pitch deck as documentation instead of a narrative that earns a meeting.
+- Letting AI polish the prose while leaving the actual market insight, validation, or differentiation generic.
 
 ## Related Pages
 

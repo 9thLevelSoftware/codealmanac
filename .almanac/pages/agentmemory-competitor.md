@@ -30,6 +30,8 @@ verified: 2026-05-15
 
 CodeAlmanac is an offline repo wiki compiler. [[capture-flow]] waits for quiet Claude or Codex transcripts, runs an Absorb job through [[wiki-lifecycle-operations]], and lets an agent edit `.almanac/pages/*.md` and `.almanac/topics.yaml` directly against the repo's notability rules. Query-time retrieval is explicit: future agents run `almanac search --mentions src/foo`, `almanac search "<query>"`, and `almanac show <slug>` before changing related code.
 
+[[codex-supermemory]] is a separate Supermemory comparison point. It is lighter than `agentmemory`: no local iii daemon, no local viewer, and no local memory index; it installs Codex prompt and stop hooks that call Supermemory's hosted API directly.
+
 ## iii Runtime Shape
 
 `iii` is the backend runtime under agentmemory, not a small helper library. Its model is a WebSocket-connected engine where workers register named functions, triggers invoke those functions, and shared primitives provide KV state, HTTP triggers, streams, queues, cron, and OpenTelemetry traces. Agentmemory registers itself as an iii worker in `src/index.ts`, then registers memory functions such as `mem::observe`, `mem::context`, `mem::smart-search`, `mem::remember`, and `mem::forget`.
@@ -61,3 +63,7 @@ The honest product gap is activation, not wiki quality. CodeAlmanac's pages are 
 The target product experience should be automatic surfacing without automatic believing. A future CodeAlmanac runtime should notice the files or commands an agent is about to touch, surface a small cited set of relevant constraints, decisions, and gotchas, and let the agent drill into the full wiki page when needed. The durable source should remain the repo-owned wiki; any session-local observation cache should be a retrieval aid, not the canonical project memory.
 
 This keeps the differentiation sharp. CodeAlmanac should not become generic context stuffing. It should become [[just-in-time-context-surfacing]] for coding agents: file-aware, evidence-linked, constraint-oriented, and followed by Absorb writeback when a session produces reusable project understanding.
+
+## Related Pages
+
+[[codex-supermemory]] covers the lighter Supermemory hook integration tested after this local-daemon comparison. [[company-brain]] places memory-daemon products inside the broader company-brain market.
