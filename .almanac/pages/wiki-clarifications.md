@@ -31,8 +31,32 @@ sources:
     type: conversation
     path: /Users/rohan/.codex/sessions/2026/05/28/rollout-2026-05-28T12-14-55-019e6f94-fae1-7780-b2c9-3e2f3d6b6f3e.jsonl
     note: Records the discussion that explored branch-scoped truth, wiki editorial review items, and product bug reporting.
+  - id: review-plan
+    type: file
+    path: docs/plans/2026-05-28-review-escalations.md
+    note: Defines the shipped review-escalation queue, command surface, status lifecycle, Garden handoff, and verification plan.
+  - id: review-command
+    type: file
+    path: src/commands/review.ts
+    note: Implements add, list, show, decide, apply, and reopen behavior for review escalations.
+  - id: review-store
+    type: file
+    path: src/review/store.ts
+    note: Loads, validates, normalizes, IDs, and atomically writes .almanac/review.yaml.
+  - id: review-cli
+    type: file
+    path: src/cli/register-edit-commands.ts
+    note: Registers the almanac review subcommands and stdin/argument Markdown handling.
+  - id: garden-prompt
+    type: file
+    path: prompts/operations/garden.md
+    note: Instructs Garden to process decided review items before general graph cleanup.
+  - id: source-control-runtime
+    type: file
+    path: src/operations/run.ts
+    note: Names .almanac/review.yaml as wiki source content when auto-commit runtime context is enabled.
 status: active
-verified: 2026-05-15
+verified: 2026-05-28
 ---
 
 # Wiki Clarifications
@@ -74,19 +98,29 @@ The first implementation can store questions with the run record under `.almanac
 
 ## Editorial Review Items
 
-A 2026-05-28 product discussion explored a related but more explicit CLI surface for wiki maintenance problems. The useful distinction is between an agent asking for missing human context and an agent recording a conflict or ambiguity that it cannot safely resolve from the available evidence. `almanac review` is an escalation surface, not a task list for ordinary cleanup. Missing citations, vague prose, deterministic frontmatter migration, and poor linking should be fixed directly or reported by `almanac health` when they can be detected mechanically. [@flags-session]
+A 2026-05-28 product discussion produced a related but more explicit CLI surface for wiki maintenance problems, and the same session landed the v1 implementation. The useful distinction is between an agent asking for missing human context and an agent recording a conflict or ambiguity that it cannot safely resolve from the available evidence. `almanac review` is an escalation surface, not a task list for ordinary cleanup. Missing citations, vague prose, deterministic frontmatter migration, and poor linking should be fixed directly or reported by `almanac health` when they can be detected mechanically. [@flags-session] [@review-plan]
 
 The settled name from that discussion is `almanac review`, not `almanac raise`, `almanac flag`, or `almanac flags`. `raise` was rejected because it can mean a wiki conflict, product bug, GitHub issue, exception, or priority change. `flag` and `flags` were rejected because the singular/plural split is awkward and because "flag" is less explicit than the underlying job: create an editorial review item for knowledge that should not be silently accepted as wiki truth. [@flags-session]
 
-The proposed command surface is one noun command with subcommands: `almanac review add`, `almanac review list`, `almanac review show <id>`, `almanac review decide <id>`, `almanac review apply <id>`, and `almanac review reopen <id>`. `review add` should accept one Markdown explanation rather than separate `--title`, `--body`, `--page`, or required `--kind` fields. The first Markdown heading becomes the summary, and the body explains what is unclear, which pages or sources are affected through inline wikilinks, why human judgment is needed, and what would resolve the item. The v1 design intentionally avoids `kind` and labels because the command itself means escalation for unresolved conflicts or ambiguity; labels can be added later if real review volume needs filtering. [@flags-session]
+The shipped command surface is one noun command with subcommands: `almanac review add`, `almanac review list`, `almanac review show <id>`, `almanac review decide <id>`, `almanac review apply <id>`, and `almanac review reopen <id>`. The edit-command registrar accepts Markdown as positional text or piped stdin for `add`, `decide`, `apply`, and `reopen`, while `list` supports `--status open|decided|applied|all` and defaults to open items. `show` and `list` can emit JSON for agents or viewer integrations. [@review-cli] [@review-command]
+
+`review add` accepts one Markdown explanation rather than separate `--title`, `--body`, `--page`, or required `--kind` fields. The first Markdown heading becomes the summary, and the body explains what is unclear, which pages or sources are affected through inline wikilinks, why human judgment is needed, and what would resolve the item. The v1 design intentionally avoids `kind` and labels because the command itself means escalation for unresolved conflicts or ambiguity; labels can be added later if real review volume needs filtering. [@flags-session] [@review-command]
 
 Review items should be readable as UI cards and detail pages. A good summary is a concrete question such as "Which page should own source-conflict guidance?", not a compressed label such as "Canonical source-conflict ownership ambiguity." The body should use simple prose and wikilinks, because the human reviewer needs enough context to answer without replaying the whole capture session. [@flags-session]
 
-The proposed storage target is `.almanac/review.yaml`, a structured repo-local queue that Garden or a human can review later. The minimal record shape is a stable id, status, summary, creation time, decision time, optional decision text, application time, optional application summary, and Markdown body. Separate `pages: []`, `topics: []`, kind, and evidence fields are not necessary in v1 because the Markdown body can carry wikilinks that the indexer can later extract. This queue is operational maintenance data rather than a normal wiki page, because unresolved conflicts would pollute the page graph if every review item became `.almanac/pages/` content immediately. [@flags-session]
+The storage target is `.almanac/review.yaml`, a structured repo-local queue that Garden or a human can review later. The store defaults missing or empty files to `version: 1` with no items, rejects malformed top-level YAML, rejects unsupported versions, rejects duplicate IDs, and writes through a temporary file followed by rename. Item IDs are kebab-case summaries capped from the first heading or first non-empty line, with numeric suffixes for collisions. [@review-store]
+
+The minimal record shape is a stable id, status, summary, creation time, decision time, optional decision text, application time, optional application summary, and Markdown body. Separate `pages: []`, `topics: []`, kind, and evidence fields are not necessary in v1 because the Markdown body can carry wikilinks that the indexer can later extract. This queue is operational maintenance data rather than a normal wiki page, because unresolved conflicts would pollute the page graph if every review item became `.almanac/pages/` content immediately. The source-control runtime context treats `.almanac/review.yaml` as durable wiki source content alongside `.almanac/README.md`, `.almanac/pages/`, and `.almanac/topics.yaml` when auto-commit is enabled. [@flags-session] [@review-store] [@source-control-runtime]
+
+Garden is the primary producer for review items because it audits wiki shape, overlap, source grounding, and currentness across the graph. Absorb and Build may also add review items when their input reveals a source conflict that cannot be resolved from current code, docs, sources, or existing pages. Review items should not be used for ordinary cleanup, missing links, source-health warnings, deterministic migrations, feature ideas, product wishes, or generic "should we support this?" questions; those should be fixed directly, reported by `almanac health`, or handled in the normal product backlog. [@flags-session]
+
+The current escalation rule is unresolved source conflict after verification, not fact drift and not feature design. If current code, tests, config, prompts, schemas, or current external docs answer a present-tense claim, the agent should update the wiki directly and treat older contradictory wiki prose, PR comments, commits, conversations, or notes as stale or historical evidence. A review item is justified only when the wiki needs to say something, the agent has inspected the relevant sources, the sources still support incompatible interpretations, the normal truth hierarchy cannot resolve them, and a human/editor decision is needed to decide what the wiki should say. [@flags-session]
+
+Review items should set the scene for a human decision instead of asking the human to organize the wiki. The body should name the claim in question, summarize the sources inspected, explain why verification did not resolve the source conflict, state the decision needed, and leave page placement, links, archive/supersession, and prose cleanup to Garden. A checkout retry mismatch is not a good review item when current code and tests already define retry behavior, and an image-source policy question is not a review item when it is really a feature or product-design question. [@flags-session]
 
 Review item status should distinguish the human decision from the agent's page edits. `open` means the item still needs a human or editor decision. `decided` means the human decision is recorded but the wiki pages still need to be changed. `applied` means an agent has applied the decision to pages, sources, links, and summaries. [@flags-session]
 
-`review decide` records the human decision that unblocks the agent; it does not mean the wiki pages have already been edited. A decided item stores `status: decided`, `decided_at`, and a Markdown `decision`. Garden should start maintenance by running `almanac review list --status decided`, read each item with `almanac review show <id>`, apply the decision to the relevant wiki pages, and then run `almanac review apply <id> "<summary>"` to store `status: applied`, `applied_at`, and an application summary. `review reopen` moves a decided or applied item back to open when the decision was wrong, incomplete, contradicted by later code, or insufficient for the applying agent. [@flags-session]
+`review decide` records the human decision that unblocks the agent; it does not mean the wiki pages have already been edited. A decided item stores `status: decided`, `decided_at`, and a Markdown `decision`. Garden starts maintenance by running `almanac review list --status decided`, reads each item with `almanac review show <id>`, applies the decision to the relevant wiki pages, and then runs `almanac review apply <id> "<summary>"` to store `status: applied`, `applied_at`, and an application summary. `review reopen` moves a decided or applied item back to open when the decision was wrong, incomplete, contradicted by later code, or insufficient for the applying agent. Reopening clears the stored decision and application fields while preserving a reopen timestamp and optional note. [@flags-session] [@review-command] [@garden-prompt]
 
 The viewer surface should read as a decision inbox, not a work tracker. `almanac serve` can list open, decided, and applied review items, show the Markdown explanation with wikilinks, and provide a decision form for open items. After a decision, the UI should mark the item as ready for Garden rather than imply the wiki pages already changed. The human supplies judgment; the agent performs the page edits, link cleanup, and eventual applied-item cleanup. [@flags-session]
 

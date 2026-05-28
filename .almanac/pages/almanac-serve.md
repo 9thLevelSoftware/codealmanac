@@ -42,6 +42,10 @@ sources:
     type: conversation
     path: /Users/rohan/.codex/sessions/2026/05/28/rollout-2026-05-28T12-14-55-019e6f94-fae1-7780-b2c9-3e2f3d6b6f3e.jsonl
     note: Records the source-provenance implementation that added source records to the page view and viewer rail.
+  - id: review-escalations-session
+    type: conversation
+    path: /Users/rohan/.codex/sessions/2026/05/28/rollout-2026-05-28T12-14-55-019e6f94-fae1-7780-b2c9-3e2f3d6b6f3e.jsonl
+    note: Records that the review escalation CLI shipped without a serve UI.
 ---
 
 # almanac serve (Local Viewer)
@@ -108,6 +112,7 @@ The home route treats `.almanac/pages/getting-started.md` as the single markdown
 - No authentication
 - No cloud sync or remote access
 - No editing UI (markdown stays in editor/filesystem)
+- No review-escalation UI yet; `.almanac/review.yaml` is currently managed through `almanac review`
 - No AI calls
 - No database writes (except implicit reindex)
 - No separate content model

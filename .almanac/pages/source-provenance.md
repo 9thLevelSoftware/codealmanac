@@ -62,7 +62,19 @@ sources:
   - id: garden-prompt
     type: file
     path: prompts/operations/garden.md
-    note: Applies source cleanup guidance to Garden maintenance runs.
+    note: Applies source cleanup guidance to Garden maintenance runs, tells Garden to process decided review items before general cleanup, and limits new review items to unresolved source conflicts after verification.
+  - id: review-plan
+    type: file
+    path: docs/plans/2026-05-28-review-escalations.md
+    note: Defines the shipped review-escalation queue, command surface, status lifecycle, and Garden handoff.
+  - id: review-command
+    type: file
+    path: src/commands/review.ts
+    note: Implements the deterministic almanac review command functions.
+  - id: review-store
+    type: file
+    path: src/review/store.ts
+    note: Implements .almanac/review.yaml loading, validation, ID generation, and atomic writes.
   - id: manual-seed
     type: file
     path: docs/manual/good-codebase-wikis.md
@@ -142,7 +154,7 @@ The main failure mode is claim/source mismatch. A source can be real but obsolet
 
 When code contradicts the wiki, the wiki should be updated toward current code and the old statement should remain only when it explains history. When current code contradicts an old issue, PR, or conversation, the old source should be cited as historical evidence rather than present truth. When two non-code sources conflict, the page should prefer the more authoritative and recent source, or mark the conflict as unresolved when that cannot be decided from available evidence. When a conversation proposes a feature that is not implemented, the page should record it as an open question or idea instead of describing it as product behavior. When external docs change while the repo still depends on older behavior, the page should name the mismatch explicitly. [@implementation-session]
 
-Unresolved source conflicts should not automatically become page state. [[wiki-clarifications|Editorial review items]] are the proposed escalation queue for conflicts or ambiguities that an agent cannot safely resolve in the current pass. The current CLI design uses `almanac review add`, `almanac review list`, `almanac review show <id>`, `almanac review decide <id>`, `almanac review apply <id>`, and `almanac review reopen <id>` over `.almanac/review.yaml`; `review add` should accept one Markdown explanation whose heading becomes the summary and whose body carries wikilinks to affected pages or sources. `review decide` records the human decision that a later agent operation should apply to the wiki, rather than marking the page edits as already complete. `review apply` records that an agent applied the decision to the wiki. Source-hygiene problems such as missing citations and non-portable sources fit `almanac health` better when they can be detected mechanically. Ordinary cleanup should be fixed directly instead of becoming a review item. [@implementation-session]
+Unresolved source conflicts should not automatically become page state. [[wiki-clarifications|Editorial review items]] are the shipped escalation queue for source conflicts that an agent cannot safely resolve after checking the relevant evidence and applying the normal truth hierarchy. The CLI uses `almanac review add`, `almanac review list`, `almanac review show <id>`, `almanac review decide <id>`, `almanac review apply <id>`, and `almanac review reopen <id>` over `.almanac/review.yaml`; `review add` accepts one Markdown explanation whose heading becomes the summary and whose body carries wikilinks to affected pages or sources. `review decide` records the human decision that a later agent operation should apply to the wiki, rather than marking the page edits as already complete. `review apply` records that an agent applied the decision to the wiki. Garden reads decided items before general cleanup and marks them applied after editing pages. Source-hygiene problems such as missing citations and non-portable sources fit `almanac health` better when they can be detected mechanically. Ordinary cleanup, answerable code/wiki drift, feature ideas, and product questions should not become review items. [@implementation-session] [@review-plan] [@review-command] [@review-store] [@garden-prompt]
 
 ## Transition Contract
 

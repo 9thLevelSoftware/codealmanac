@@ -4,14 +4,17 @@ summary: The V1 lifecycle CLI routes Build, Absorb, Garden, and scheduled mainte
 topics: [cli, flows, agents]
 files:
   - src/cli/register-wiki-lifecycle-commands.ts
+  - src/cli/register-edit-commands.ts
   - src/cli.ts
   - src/cli/sqlite-free.ts
   - src/commands/operations.ts
+  - src/commands/review.ts
   - src/commands/jobs.ts
   - src/commands/session-transcripts.ts
   - src/commands/setup.ts
   - src/commands/setup/automation-step.ts
   - src/commands/automation.ts
+  - src/review/store.ts
   - src/automation/tasks.ts
 sources:
   - /Users/kushagrachitkara/.codex/sessions/2026/05/11/rollout-2026-05-11T14-32-08-019e18f4-5e73-7790-ba49-73cc02544a58.jsonl
@@ -51,6 +54,8 @@ There is one CLI-shape wrinkle inside that surface: `capture` itself has `--json
 [[ingest-operation]] (`almanac ingest <file-or-folder>`) maps to Absorb with user-provided file/folder context and defaults background.
 
 `almanac garden` maps to Garden and defaults background because it can make broad graph edits.
+
+`almanac review` is a deterministic edit command over `.almanac/review.yaml`, not an AI lifecycle command. `review add` records an open Markdown review item, `review decide` records the human decision, `review apply` records that an agent applied the decision to the wiki, and `review reopen` returns a decided or applied item to open. `review list` defaults to open items and supports `--status open|decided|applied|all`; `review show` and `review list` support JSON for agents and future viewer APIs. The command belongs beside edit commands because it writes wiki source state, but it does not itself edit pages or run an agent.
 
 ## Shared flags
 
