@@ -90,6 +90,54 @@ describe("process manager foreground execution", () => {
     });
   });
 
+  it("persists provider session id as soon as the harness reports it", async () => {
+    await withTempHome(async (home) => {
+      const repo = await makeRepo(home, "foreground-session-id");
+      await scaffoldWiki(repo);
+
+      const result = await startForegroundProcess({
+        repoRoot: repo,
+        runId: "run_20260509195500_session_id",
+        now: fixedClock([
+          "2026-05-09T19:55:00.000Z",
+          "2026-05-09T19:55:01.000Z",
+          "2026-05-09T19:55:02.000Z",
+        ]),
+        spec: {
+          provider: { id: "codex" },
+          cwd: repo,
+          prompt: "absorb",
+          metadata: { operation: "absorb", targetKind: "session" },
+        },
+        harnessRun: async (_spec, hooks) => {
+          await hooks?.onEvent?.({
+            type: "provider_session",
+            providerSessionId: "provider-early",
+          });
+
+          const running = await readRunRecord(
+            runRecordPath(repo, "run_20260509195500_session_id"),
+          );
+          expect(running).toMatchObject({
+            status: "running",
+            providerSessionId: "provider-early",
+          });
+
+          return {
+            success: true,
+            result: "done",
+            providerSessionId: "provider-early",
+          };
+        },
+      });
+
+      expect(result.record).toMatchObject({
+        status: "done",
+        providerSessionId: "provider-early",
+      });
+    });
+  });
+
   it("marks failed runs and records thrown errors", async () => {
     await withTempHome(async (home) => {
       const repo = await makeRepo(home, "foreground-failure");

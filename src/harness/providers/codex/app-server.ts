@@ -305,6 +305,10 @@ export async function runCodexAppServer(
         }
         state.providerSessionId = threadId;
         state.rootThreadId = threadId;
+        eventWrites.push(
+          hooks?.onEvent?.({ type: "provider_session", providerSessionId: threadId }) ??
+            Promise.resolve(),
+        );
         const outputSchema = await readOutputSchema(spec.output?.schemaPath);
         const turn = asRecord(
           await requestRpc("turn/start", {

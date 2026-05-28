@@ -393,6 +393,124 @@ describe("almanac capture sweep", () => {
     });
   });
 
+  it("skips transcripts whose session id belongs to a running Almanac run record", async () => {
+    await withTempHome(async (home) => {
+      const repo = await makeRepo(home, "repo");
+      await scaffoldWiki(repo);
+      const codexDir = join(home, ".codex", "sessions");
+      await mkdir(codexDir, { recursive: true });
+      const transcript = join(codexDir, "internal-by-run-record.jsonl");
+      await writeFile(
+        transcript,
+        `${JSON.stringify({
+          type: "session_meta",
+          payload: { id: "provider-session-1", cwd: repo },
+        })}\n`,
+        "utf8",
+      );
+      const old = new Date("2026-05-11T10:00:00.000Z");
+      await utimes(transcript, old, old);
+      await writeRunRecord(runRecordPath(repo, "run_20260511110000_internal"), {
+        version: 1,
+        id: "run_20260511110000_internal",
+        operation: "absorb",
+        status: "running",
+        repoRoot: repo,
+        pid: 123,
+        provider: "codex",
+        providerSessionId: "provider-session-1",
+        startedAt: "2026-05-11T11:00:00.000Z",
+        logPath: join(repo, ".almanac", "runs", "run_20260511110000_internal.jsonl"),
+        targetKind: "session",
+        targetPaths: [transcript],
+      });
+
+      const result = await runCaptureSweepCommand({
+        cwd: repo,
+        homeDir: home,
+        json: true,
+        quiet: "45m",
+        now: new Date("2026-05-11T12:00:00.000Z"),
+        startBackground: async () => {
+          throw new Error("should not capture internal provider sessions");
+        },
+      });
+
+      const parsed = JSON.parse(result.stdout);
+      expect(parsed.summary.started).toHaveLength(0);
+      expect(parsed.summary.skipped).toContainEqual(expect.objectContaining({
+        sessionId: "provider-session-1",
+        reason: "internal-almanac-session",
+      }));
+    });
+  });
+
+  it("ignores malformed provider session ids in historical run records", async () => {
+    await withTempHome(async (home) => {
+      const repo = await makeRepo(home, "repo");
+      await scaffoldWiki(repo);
+      const codexDir = join(home, ".codex", "sessions");
+      await mkdir(codexDir, { recursive: true });
+      const transcript = join(codexDir, "external.jsonl");
+      await writeFile(
+        transcript,
+        `${JSON.stringify({
+          type: "session_meta",
+          payload: { id: "external", cwd: repo },
+        })}\n`,
+        "utf8",
+      );
+      const old = new Date("2026-05-11T10:00:00.000Z");
+      await utimes(transcript, old, old);
+      await mkdir(join(repo, ".almanac", "runs"), { recursive: true });
+      await writeFile(
+        runRecordPath(repo, "run_20260511110000_malformed"),
+        `${JSON.stringify({
+          version: 1,
+          id: "run_20260511110000_malformed",
+          operation: "absorb",
+          status: "done",
+          repoRoot: repo,
+          pid: 123,
+          provider: "codex",
+          providerSessionId: null,
+          startedAt: "2026-05-11T11:00:00.000Z",
+          logPath: join(repo, ".almanac", "runs", "run_20260511110000_malformed.jsonl"),
+        })}\n`,
+        "utf8",
+      );
+
+      const result = await runCaptureSweepCommand({
+        cwd: repo,
+        homeDir: home,
+        json: true,
+        quiet: "45m",
+        now: new Date("2026-05-11T12:00:00.000Z"),
+        startBackground: async (options) => ({
+          runId: "run_external",
+          childPid: 123,
+          record: {
+            version: 1,
+            id: "run_external",
+            operation: "absorb",
+            status: "queued",
+            repoRoot: options.repoRoot,
+            pid: 0,
+            provider: options.spec.provider.id,
+            model: options.spec.provider.model,
+            startedAt: "2026-05-11T12:00:00.000Z",
+            logPath: join(options.repoRoot, ".almanac", "runs", "x.jsonl"),
+          },
+        }),
+      });
+
+      const parsed = JSON.parse(result.stdout);
+      expect(result.exitCode).toBe(0);
+      expect(parsed.summary.started).toHaveLength(1);
+      expect(parsed.summary.started[0]).toMatchObject({ sessionId: "external" });
+    });
+  });
+
   it("recovers an abandoned sweep lock", async () => {
     await withTempHome(async (home) => {
       const repo = await makeRepo(home, "repo");

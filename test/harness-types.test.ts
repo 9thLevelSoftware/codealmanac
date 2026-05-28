@@ -56,15 +56,20 @@ describe("harness types", () => {
   });
 
   it("keeps provider events independent from provider-native stream shapes", () => {
-    const event: HarnessEvent = {
+    const doneEvent: HarnessEvent = {
       type: "done",
       result: "finished",
       providerSessionId: "session-1",
       costUsd: 0.1,
       turns: 3,
     };
+    const sessionEvent: HarnessEvent = {
+      type: "provider_session",
+      providerSessionId: "session-1",
+    };
 
-    expect(event.type).toBe("done");
+    expect(doneEvent.type).toBe("done");
+    expect(sessionEvent.type).toBe("provider_session");
   });
 
   it("does not require provider implementations to import Claude SDK types", async () => {

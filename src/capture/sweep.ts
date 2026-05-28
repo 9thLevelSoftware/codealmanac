@@ -13,6 +13,7 @@ import {
   writeLedger,
 } from "./ledger.js";
 import { acquireRepoSweepLock, releaseRepoSweepLock } from "./lock.js";
+import { listRunRecords } from "../process/index.js";
 
 export interface SweepStarted {
   app: SweepApp;
@@ -89,12 +90,18 @@ export async function executeCaptureSweep(args: {
   };
 
   const ledgers = new Map<string, CaptureLedger>();
+  const internalSessionIds = new Map<string, Set<string>>();
   const heldLocks = new Set<string>();
   try {
     for (const candidate of args.candidates) {
       const eligibilitySkip = candidateEligibility(candidate, args);
       if (eligibilitySkip !== null) {
         summary.skipped.push(eligibilitySkip);
+        continue;
+      }
+
+      if (await isInternalAlmanacSession(candidate, internalSessionIds)) {
+        summary.skipped.push(skip(candidate, "internal-almanac-session"));
         continue;
       }
 
@@ -168,6 +175,22 @@ export async function executeCaptureSweep(args: {
   }
 
   return summary;
+}
+
+async function isInternalAlmanacSession(
+  candidate: SessionCandidate,
+  cache: Map<string, Set<string>>,
+): Promise<boolean> {
+  let ids = cache.get(candidate.repoRoot);
+  if (ids === undefined) {
+    ids = new Set(
+      (await listRunRecords(candidate.repoRoot))
+        .map((record) => record.providerSessionId)
+        .filter((id): id is string => typeof id === "string" && id.length > 0),
+    );
+    cache.set(candidate.repoRoot, ids);
+  }
+  return ids.has(candidate.sessionId);
 }
 
 function candidateEligibility(

@@ -212,7 +212,15 @@ async function executeStartedRun(args: {
     const before = await snapshotPages(pagesDir);
     try {
       result = await harnessRun(args.spec, {
-        onEvent: eventLogger(started.logPath, runId, now, eventWrites, args.onEvent),
+        onEvent: eventLogger({
+          logPath: started.logPath,
+          runId,
+          now,
+          writes: eventWrites,
+          recordPath,
+          fallbackRecord: started,
+          observer: args.onEvent,
+        }),
       });
     } catch (err: unknown) {
       result = {
@@ -375,21 +383,59 @@ async function finishCancelled(args: {
   return cancelled;
 }
 
-function eventLogger(
-  path: string,
-  runId: string,
-  now: () => Date,
-  writes: Promise<void>[],
-  observer?: (event: HarnessEvent) => void | Promise<void>,
-): (event: HarnessEvent) => void {
+function eventLogger(args: {
+  logPath: string;
+  runId: string;
+  now: () => Date;
+  writes: Promise<void>[];
+  recordPath: string;
+  fallbackRecord: RunRecord;
+  observer?: (event: HarnessEvent) => void | Promise<void>;
+}): (event: HarnessEvent) => Promise<void> {
   let sequence = 0;
   return (event) => {
     sequence += 1;
-    writes.push(appendRunEvent(path, event, now(), { runId, sequence }));
-    if (observer !== undefined) {
-      writes.push(Promise.resolve(observer(event)));
+    const writes = [
+      appendRunEvent(args.logPath, event, args.now(), { runId: args.runId, sequence }),
+      persistProviderSessionId({
+        recordPath: args.recordPath,
+        fallbackRecord: args.fallbackRecord,
+        event,
+      }),
+    ];
+    if (args.observer !== undefined) {
+      writes.push(Promise.resolve(args.observer(event)));
     }
+    const write = Promise.allSettled(writes).then(() => undefined);
+    args.writes.push(write);
+    return write;
   };
+}
+
+async function persistProviderSessionId(args: {
+  recordPath: string;
+  fallbackRecord: RunRecord;
+  event: HarnessEvent;
+}): Promise<void> {
+  const providerSessionId = providerSessionIdFromEvent(args.event);
+  if (providerSessionId === undefined) return;
+  const current = await readRunRecord(args.recordPath);
+  const record = current ?? args.fallbackRecord;
+  if (record.providerSessionId !== undefined) return;
+  await writeRunRecord(args.recordPath, {
+    ...record,
+    providerSessionId,
+  });
+}
+
+function providerSessionIdFromEvent(event: HarnessEvent): string | undefined {
+  if (event.type === "provider_session") {
+    return event.providerSessionId;
+  }
+  if (event.type === "done" && event.providerSessionId !== undefined) {
+    return event.providerSessionId;
+  }
+  return undefined;
 }
 
 function harnessResultSummary(result: string): string | undefined {

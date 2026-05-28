@@ -79,6 +79,7 @@ export type HarnessEvent = HarnessEventEnvelopeFields &
     }
   | { type: "tool_summary"; summary: string }
   | { type: "context_usage"; usage: AgentUsage }
+  | { type: "provider_session"; providerSessionId: string }
   | { type: "error"; error: string; failure?: HarnessFailure }
   | {
       type: "done";

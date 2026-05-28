@@ -260,6 +260,7 @@ describe("Claude harness provider", () => {
 
     expect(result.success).toBe(true);
     expect(events).toMatchObject([
+      { type: "provider_session", providerSessionId: "session-1" },
       { type: "text_delta", content: "hello", actor: expect.objectContaining({ role: "root" }) },
       { type: "text", content: "Reading", actor: expect.objectContaining({ role: "root" }) },
       {

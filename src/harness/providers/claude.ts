@@ -98,6 +98,7 @@ async function runClaudeHarness(
   let turns: number | undefined;
   let result = "";
   let providerSessionId: string | undefined;
+  let announcedProviderSessionId: string | undefined;
   let success = false;
   let error: string | undefined;
   let failure: HarnessFailure | undefined;
@@ -112,6 +113,16 @@ async function runClaudeHarness(
     for await (const message of stream) {
       providerSessionId = providerSessionId ?? getSessionId(message);
       trace.sessionId = trace.sessionId ?? providerSessionId;
+      if (
+        providerSessionId !== undefined &&
+        announcedProviderSessionId !== providerSessionId
+      ) {
+        announcedProviderSessionId = providerSessionId;
+        await hooks?.onEvent?.({
+          type: "provider_session",
+          providerSessionId,
+        });
+      }
       for (const event of toHarnessEvents(message, trace)) {
         await hooks?.onEvent?.(event);
       }

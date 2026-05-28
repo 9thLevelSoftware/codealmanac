@@ -431,6 +431,10 @@ rl.on("line", (line) => {
       expect(events).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
+            type: "provider_session",
+            providerSessionId: "thread-1",
+          }),
+          expect.objectContaining({
             type: "tool_use",
             display: expect.objectContaining({
               kind: "read",
