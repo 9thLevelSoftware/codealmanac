@@ -1,9 +1,9 @@
 ---
 title: almanac serve (Local Viewer)
-summary: "`almanac serve` is a local read-only viewer over wiki pages, the SQLite index, and run records, including a jobs dashboard."
+summary: "`almanac serve` is a local read-only viewer over wiki pages, the SQLite index, run records, and review escalations."
 topics: [cli, decisions, systems]
 status: active
-verified: 2026-05-15
+verified: 2026-05-28
 files:
   - src/commands/serve.ts
   - src/viewer/api.ts

@@ -22,7 +22,15 @@ sources:
   - id: viewer-api
     type: file
     path: src/viewer/api.ts
-    note: Serves viewer data that can later include question or review surfaces.
+    note: Serves review items and counts from .almanac/review.yaml to the local viewer.
+  - id: viewer-server
+    type: file
+    path: src/viewer/server.ts
+    note: Routes the viewer API request for /review.
+  - id: viewer-frontend
+    type: file
+    path: viewer/app.js
+    note: Renders the Review route with open, decided, and applied sections.
   - id: clarifications-session
     type: conversation
     path: /Users/rohan/.codex/sessions/2026/05/15/rollout-2026-05-15T01-43-21-019e2a29-293a-7263-b6ce-0a9dc0af792a.jsonl
@@ -122,7 +130,7 @@ Review item status should distinguish the human decision from the agent's page e
 
 `review decide` records the human decision that unblocks the agent; it does not mean the wiki pages have already been edited. A decided item stores `status: decided`, `decided_at`, and a Markdown `decision`. Garden starts maintenance by running `almanac review list --status decided`, reads each item with `almanac review show <id>`, applies the decision to the relevant wiki pages, and then runs `almanac review apply <id> "<summary>"` to store `status: applied`, `applied_at`, and an application summary. `review reopen` moves a decided or applied item back to open when the decision was wrong, incomplete, contradicted by later code, or insufficient for the applying agent. Reopening clears the stored decision and application fields while preserving a reopen timestamp and optional note. [@flags-session] [@review-command] [@garden-prompt]
 
-The viewer surface should read as a decision inbox, not a work tracker. `almanac serve` can list open, decided, and applied review items, show the Markdown explanation with wikilinks, and provide a decision form for open items. After a decision, the UI should mark the item as ready for Garden rather than imply the wiki pages already changed. The human supplies judgment; the agent performs the page edits, link cleanup, and eventual applied-item cleanup. [@flags-session]
+The shipped viewer surface reads as a decision inbox, not a work tracker. `almanac serve` exposes a `/review` route backed by `src/viewer/api.ts`, `src/viewer/server.ts`, and `viewer/app.js`; the route reads `.almanac/review.yaml`, counts items by `open`, `decided`, and `applied`, and renders those statuses as separate sections. After a decision, the UI should mark the item as ready for Garden rather than imply the wiki pages already changed. The human supplies judgment; the agent performs the page edits, link cleanup, and eventual applied-item cleanup. [@flags-session] [@viewer-api] [@viewer-server] [@viewer-frontend]
 
 A review item is different from a product bug report. Review items are for conflicts and unresolved decisions that should not be accepted as current truth. Product bug reports are for defects in CodeAlmanac itself and should eventually use a separate `almanac bug` surface that can open a GitHub issue when configured or print a ready-to-copy report when GitHub is unavailable. [@flags-session]
 
@@ -134,7 +142,7 @@ Clarifications also should not make lifecycle commands interactive. Background c
 
 The likely command and UI surfaces are:
 
-- `almanac serve` Questions view for humans
+- `almanac serve` Review view for humans
 - `almanac jobs show <run-id> --json` exposing run-scoped questions to agents
 - a future `almanac verify` or `almanac garden --verify` for claim audits
 - a future `almanac resolve-questions` or `almanac garden --answers` operation that applies answered questions
