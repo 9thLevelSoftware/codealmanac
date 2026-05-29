@@ -24,7 +24,7 @@ sources:
   - /Users/rohan/.codex/sessions/2026/05/13/rollout-2026-05-13T23-00-06-019e246d-595d-76d3-bd45-6433245065ac.jsonl
   - /Users/rohan/.codex/sessions/2026/05/15/rollout-2026-05-15T01-43-21-019e2a29-293a-7263-b6ce-0a9dc0af792a.jsonl
   - /Users/rohan/.codex/sessions/2026/05/28/rollout-2026-05-28T18-27-05-019e70e9-b7d7-7900-9fc0-da2a6f0b532d.jsonl
-verified: 2026-05-15
+verified: 2026-05-29
 ---
 
 # Harness Providers
@@ -42,6 +42,8 @@ The V1 harness layer is Almanac's provider-neutral execution boundary. Operation
 Harness history means CodeAlmanac's own run history: the `AgentRunSpec`, normalized `HarnessEvent` stream, `.almanac/runs/` records, provider session id, usage, cost, status, and failure metadata produced when CodeAlmanac runs an operation. External Claude or Codex JSONL transcript stores are not harness history in this architecture. [[capture-flow]] reads those transcript stores as source material for scheduled Absorb work, but that source discovery should stay outside the harness provider contract unless the provider abstraction is deliberately expanded.
 
 The 2026-05-28 provider-session persistence discussion added one placement rule for future harness work: whether an Almanac maintenance run should create provider-owned session history is lifecycle intent, not a provider-adapter accident. The operation layer expresses this on `AgentRunSpec` as `providerSession.persistence = "ephemeral" | "persistent"`, and each adapter translates that intent to its native mechanism. Claude maps ephemeral maintenance runs to SDK `persistSession: false`, Codex app-server maps them to `thread/start.ephemeral`, and Codex exec maps them to `codex exec --ephemeral`. Hardcoding `--ephemeral` or `persistSession: false` inside one adapter without a spec-level field would hide the product rule and make Build, Absorb, and Garden drift apart.
+
+Provider session persistence is not the same problem as provider process ownership. Non-persistent maintenance sessions keep future sweeps from rediscovering Almanac's own provider-history transcripts; they do not guarantee that killing a CodeAlmanac run kills the provider CLI process and MCP children already spawned for that run. Future cleanup work should keep that distinction explicit and put process-tree control in a shared provider execution helper rather than in capture-specific automation code.
 
 The harness layer is also distinct from the agent readiness code under `src/agent/readiness/`. See [[provider-lifecycle-boundary]] for the current boundary: harness providers are the execution adapter layer; readiness, auth, instruction installation, and persisted config are separate agent-support lifecycles.
 

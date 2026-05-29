@@ -17,7 +17,7 @@ files:
   - viewer/jobs.css
 sources:
   - /Users/rohan/.codex/sessions/2026/05/28/rollout-2026-05-28T18-27-05-019e70e9-b7d7-7900-9fc0-da2a6f0b532d.jsonl
-verified: 2026-05-28
+verified: 2026-05-29
 ---
 
 # Process Manager Runs
@@ -50,6 +50,8 @@ Terminal statuses are `done`, `failed`, and `cancelled`. `jobs` can display `sta
 Maintenance operation specs set `providerSession.persistence = "ephemeral"`. Claude maps that to SDK `persistSession: false`, Codex app-server maps it to `thread/start.ephemeral`, and Codex exec maps it to `--ephemeral`. CodeAlmanac no longer injects internal transcript marker environment variables or scans provider transcript contents for those markers; the durable audit path is `.almanac/runs/`.
 
 Claude harness runs install `SIGINT`, `SIGTERM`, and `SIGHUP` handlers around the SDK query and abort its `AbortController` when the job process is asked to stop. This is a normal-termination cleanup path for the Claude CLI and MCP children; `SIGKILL` can still leave no JavaScript cleanup opportunity.
+
+Issue #10 remains a separate provider-process ownership risk from the single-writer queue. The queue reduces fan-out by serializing write-capable jobs per wiki, but it does not by itself prove that a killed CodeAlmanac job will terminate a provider CLI and any MCP children that the provider started. The future hardening target is a managed provider-process abstraction that starts CLI providers in an owned process group, records the group id, and terminates the whole group on cancellation, job exit, or parent signal before falling back to a stronger kill.
 
 ## Single-writer queue
 
