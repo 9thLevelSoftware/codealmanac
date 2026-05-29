@@ -1,8 +1,11 @@
-import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
 
 import type { HarnessResult } from "../../events.js";
 import type { AgentRunSpec, HarnessRunHooks } from "../../types.js";
+import {
+  spawnInProcessGroup,
+  terminateProcessGroup,
+} from "../../../process/process-group.js";
 import {
   buildCodexAppServerRequest,
   codexClientVersion,
@@ -52,7 +55,7 @@ export async function runCodexAppServer(
   const rpcTimeoutMs = codexAppServerRpcTimeoutMs(request.env);
   const turnTimeoutMs = codexAppServerTurnTimeoutMs(request.env);
   return new Promise((resolve) => {
-    const child = spawn(request.command, request.args, {
+    const child = spawnInProcessGroup(request.command, request.args, {
       cwd: request.cwd,
       env: request.env,
       stdio: ["pipe", "pipe", "pipe"],
@@ -66,10 +69,14 @@ export async function runCodexAppServer(
     let settled = false;
     let activeTurnId: string | undefined;
     let turnTimeout: NodeJS.Timeout | undefined;
+    const removeSignalHandlers = installSignalHandlers((signal) => {
+      fail(`Codex app-server interrupted by ${signal}`);
+    });
 
     const finish = async (result: HarnessResult): Promise<void> => {
       if (settled) return;
       settled = true;
+      removeSignalHandlers();
       if (turnTimeout !== undefined) {
         clearTimeout(turnTimeout);
         turnTimeout = undefined;
@@ -79,7 +86,7 @@ export async function runCodexAppServer(
       }
       pending.clear();
       await Promise.allSettled(eventWrites);
-      if (!child.killed) child.kill();
+      await terminateProcessGroup(child);
       resolve(result);
     };
 
@@ -342,6 +349,20 @@ export async function runCodexAppServer(
       }
     })();
   });
+}
+
+function installSignalHandlers(onSignal: (signal: NodeJS.Signals) => void): () => void {
+  const signals: NodeJS.Signals[] = ["SIGINT", "SIGTERM", "SIGHUP"];
+  const handlers = signals.map((signal) => {
+    const handler = () => onSignal(signal);
+    process.once(signal, handler);
+    return { signal, handler };
+  });
+  return () => {
+    for (const { signal, handler } of handlers) {
+      process.off(signal, handler);
+    }
+  };
 }
 
 function isRootTurnCompletion(

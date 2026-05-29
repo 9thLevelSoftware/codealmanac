@@ -1,8 +1,15 @@
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { createClaudeHarnessProvider } from "../src/harness/providers/claude.js";
 import type { AgentRunSpec } from "../src/harness/types.js";
+import {
+  createProcessTreeFixture,
+  isProcessAlive,
+  waitForDead,
+  waitForPids,
+} from "./helpers.js";
 
 describe("Claude harness provider", () => {
   it("maps AgentRunSpec to Claude SDK query options", async () => {
@@ -103,6 +110,7 @@ describe("Claude harness provider", () => {
       options: {
         systemPrompt: "system",
         cwd: "/repo",
+        settingSources: [],
         model: "claude-opus-4-6",
         effort: "high",
         tools: [
@@ -149,6 +157,184 @@ describe("Claude harness provider", () => {
         env: process.env,
       },
     });
+  });
+
+  it("isolates Claude runs from ambient filesystem settings and MCP config", async () => {
+    const calls: Array<{ options?: Record<string, unknown> }> = [];
+    const provider = createClaudeHarnessProvider({
+      resolveExecutable: () => undefined,
+      query: (params) => {
+        calls.push(params as { options?: Record<string, unknown> });
+        return messages([
+          sdk({
+            type: "result",
+            subtype: "success",
+            duration_ms: 1,
+            duration_api_ms: 1,
+            is_error: false,
+            num_turns: 1,
+            result: "ok",
+            stop_reason: null,
+            total_cost_usd: 0.01,
+            usage: {
+              input_tokens: 1,
+              cache_creation_input_tokens: 0,
+              cache_read_input_tokens: 0,
+              output_tokens: 1,
+              server_tool_use: null,
+              service_tier: "standard",
+            },
+            modelUsage: {},
+            permission_denials: [],
+            uuid: "uuid",
+            session_id: "session-1",
+          }),
+        ]);
+      },
+    });
+
+    await provider.run({
+      provider: { id: "claude" },
+      cwd: "/repo",
+      prompt: "run absorb",
+      tools: [{ id: "read" }],
+      metadata: { operation: "absorb" },
+    });
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.options).toMatchObject({
+      settingSources: [],
+      mcpServers: {},
+    });
+  });
+
+  it("runs Claude SDK subprocesses inside an abortable process group", async () => {
+    const dir = await createProcessTreeFixture("codealmanac-claude-tree-");
+    const pidFile = join(dir, "pids.txt");
+    let spawnedPids: number[] = [];
+    const provider = createClaudeHarnessProvider({
+      resolveExecutable: () => undefined,
+      query: (params) =>
+        messagesFrom(async function* () {
+          const options = params.options;
+          if (options?.spawnClaudeCodeProcess === undefined) {
+            throw new Error("expected Claude spawn hook");
+          }
+          if (options.abortController === undefined) {
+            throw new Error("expected Claude abort controller");
+          }
+          options.spawnClaudeCodeProcess({
+            command: process.execPath,
+            args: [join(dir, "child.js"), pidFile],
+            cwd: dir,
+            env: process.env,
+            signal: options.abortController.signal,
+          });
+          spawnedPids = await waitForPids(pidFile, 2);
+
+          options.abortController.abort();
+          await waitForDead(spawnedPids);
+
+          yield sdk({
+            type: "result",
+            subtype: "success",
+            duration_ms: 1,
+            duration_api_ms: 1,
+            is_error: false,
+            num_turns: 1,
+            result: "ok",
+            stop_reason: null,
+            total_cost_usd: 0.01,
+            usage: {
+              input_tokens: 1,
+              cache_creation_input_tokens: 0,
+              cache_read_input_tokens: 0,
+              output_tokens: 1,
+              server_tool_use: null,
+              service_tier: "standard",
+            },
+            modelUsage: {},
+            permission_denials: [],
+            uuid: "uuid",
+            session_id: "session-1",
+          });
+        }),
+    });
+
+    const result = await provider.run({
+      provider: { id: "claude" },
+      cwd: dir,
+      prompt: "run absorb",
+      metadata: { operation: "absorb" },
+    });
+
+    expect(result.success).toBe(true);
+    for (const pid of spawnedPids) {
+      expect(isProcessAlive(pid)).toBe(false);
+    }
+  });
+
+  it("terminates Claude SDK subprocess groups when the SDK calls kill directly", async () => {
+    const dir = await createProcessTreeFixture("codealmanac-claude-kill-tree-");
+    const pidFile = join(dir, "pids.txt");
+    let spawnedPids: number[] = [];
+    const provider = createClaudeHarnessProvider({
+      resolveExecutable: () => undefined,
+      query: (params) =>
+        messagesFrom(async function* () {
+          const options = params.options;
+          if (options?.spawnClaudeCodeProcess === undefined) {
+            throw new Error("expected Claude spawn hook");
+          }
+          const child = options.spawnClaudeCodeProcess({
+            command: process.execPath,
+            args: [join(dir, "child.js"), pidFile, "ignore-term"],
+            cwd: dir,
+            env: process.env,
+            signal: new AbortController().signal,
+          });
+          spawnedPids = await waitForPids(pidFile, 2);
+
+          child.kill("SIGTERM");
+          await waitForDead(spawnedPids, 4_000);
+
+          yield sdk({
+            type: "result",
+            subtype: "success",
+            duration_ms: 1,
+            duration_api_ms: 1,
+            is_error: false,
+            num_turns: 1,
+            result: "ok",
+            stop_reason: null,
+            total_cost_usd: 0.01,
+            usage: {
+              input_tokens: 1,
+              cache_creation_input_tokens: 0,
+              cache_read_input_tokens: 0,
+              output_tokens: 1,
+              server_tool_use: null,
+              service_tier: "standard",
+            },
+            modelUsage: {},
+            permission_denials: [],
+            uuid: "uuid",
+            session_id: "session-1",
+          });
+        }),
+    });
+
+    const result = await provider.run({
+      provider: { id: "claude" },
+      cwd: dir,
+      prompt: "run absorb",
+      metadata: { operation: "absorb" },
+    });
+
+    expect(result.success).toBe(true);
+    for (const pid of spawnedPids) {
+      expect(isProcessAlive(pid)).toBe(false);
+    }
   });
 
   it("converts Claude stream messages into harness events", async () => {
@@ -434,6 +620,10 @@ async function* messages(items: SDKMessage[]): AsyncIterable<SDKMessage> {
   for (const item of items) {
     yield item;
   }
+}
+
+function messagesFrom(factory: () => AsyncIterable<SDKMessage>): AsyncIterable<SDKMessage> {
+  return factory();
 }
 
 function sdk(value: Record<string, unknown>): SDKMessage {

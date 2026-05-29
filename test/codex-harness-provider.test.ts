@@ -15,6 +15,12 @@ import {
   runCodexAppServer,
 } from "../src/harness/providers/codex.js";
 import type { AgentRunSpec } from "../src/harness/types.js";
+import {
+  createProcessTreeFixture,
+  isProcessAlive,
+  waitForDead,
+  waitForPids,
+} from "./helpers.js";
 
 describe("Codex harness provider", () => {
   it("builds a simple codex exec JSONL request", () => {
@@ -648,6 +654,79 @@ setInterval(() => {}, 1000);
         success: false,
         error: expect.stringContaining("turn timed out after 25ms"),
       });
+    } finally {
+      process.env.PATH = oldPath;
+      if (oldTurnTimeout === undefined) {
+        delete process.env.CODEALMANAC_CODEX_APP_SERVER_TURN_TIMEOUT_MS;
+      } else {
+        process.env.CODEALMANAC_CODEX_APP_SERVER_TURN_TIMEOUT_MS =
+          oldTurnTimeout;
+      }
+    }
+  });
+
+  it("terminates app-server descendants when a run times out", async () => {
+    const binDir = await mkdtemp(join(tmpdir(), "codealmanac-codex-tree-bin-"));
+    const treeDir = await createProcessTreeFixture("codealmanac-codex-tree-");
+    const pidFile = join(treeDir, "pids.txt");
+    const codexPath = join(binDir, "codex");
+    await writeFile(
+      codexPath,
+      `#!/usr/bin/env node
+const { spawn } = require("node:child_process");
+const { appendFileSync } = require("node:fs");
+const readline = require("node:readline");
+
+process.on("SIGTERM", () => {});
+appendFileSync(${JSON.stringify(pidFile)}, String(process.pid) + "\\n");
+spawn(process.execPath, [
+  ${JSON.stringify(join(treeDir, "child.js"))},
+  ${JSON.stringify(pidFile)},
+  "ignore-term",
+], { cwd: ${JSON.stringify(treeDir)}, stdio: "ignore" });
+
+const rl = readline.createInterface({ input: process.stdin });
+function send(msg) { process.stdout.write(JSON.stringify(msg) + "\\n"); }
+rl.on("line", (line) => {
+  const msg = JSON.parse(line);
+  if (msg.method === "initialize") {
+    send({ id: msg.id, result: { userAgent: "fake-codex" } });
+    return;
+  }
+  if (msg.method === "thread/start") {
+    send({ id: msg.id, result: { thread: { id: "thread-1" } } });
+    return;
+  }
+  if (msg.method === "turn/start") {
+    send({ id: msg.id, result: { turn: { id: "turn-1" } } });
+  }
+});
+setInterval(() => {}, 1000);
+`,
+    );
+    await chmod(codexPath, 0o755);
+    const oldPath = process.env.PATH;
+    const oldTurnTimeout = process.env.CODEALMANAC_CODEX_APP_SERVER_TURN_TIMEOUT_MS;
+    process.env.PATH = `${binDir}:${oldPath ?? ""}`;
+    process.env.CODEALMANAC_CODEX_APP_SERVER_TURN_TIMEOUT_MS = "250";
+    try {
+      const run = runCodexAppServer({
+        provider: { id: "codex" },
+        cwd: binDir,
+        prompt: "run",
+        metadata: { operation: "garden" },
+      });
+      const pids = await waitForPids(pidFile, 3, 5_000);
+
+      await expect(run).resolves.toMatchObject({
+        success: false,
+        error: expect.stringContaining("turn timed out after 250ms"),
+      });
+
+      await waitForDead(pids);
+      for (const pid of pids) {
+        expect(isProcessAlive(pid)).toBe(false);
+      }
     } finally {
       process.env.PATH = oldPath;
       if (oldTurnTimeout === undefined) {

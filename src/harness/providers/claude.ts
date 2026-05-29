@@ -21,6 +21,11 @@ import {
   resolveClaudeExecutable,
   type ClaudeAuthStatus,
 } from "../../agent/auth/claude.js";
+import {
+  attachAbortSignalToProcessGroup,
+  spawnInProcessGroup,
+  terminateProcessGroup,
+} from "../../process/process-group.js";
 
 type ClaudeQuery = AsyncIterable<SDKMessage>;
 type ClaudeQueryFn = (params: {
@@ -243,23 +248,64 @@ function buildClaudeOptions(
   return pruneUndefined({
     systemPrompt: spec.systemPrompt,
     cwd: spec.cwd,
+    // query() loads Claude user/project settings by default. Almanac runs supply
+    // their own prompt and tool policy, so keep them isolated from ambient MCPs.
+    settingSources: [],
     model: spec.provider.model ?? HARNESS_PROVIDER_METADATA.claude.defaultModel ?? undefined,
     effort: toClaudeEffort(spec.provider.effort),
     tools,
     allowedTools: tools,
     agents,
-    mcpServers: spec.mcpServers as ClaudeOptions["mcpServers"],
+    mcpServers: (spec.mcpServers ?? {}) as ClaudeOptions["mcpServers"],
     maxTurns: spec.limits?.maxTurns ?? 100,
     maxBudgetUsd: spec.limits?.maxCostUsd,
     permissionMode: "dontAsk",
     includePartialMessages: true,
     forwardSubagentText: true,
     persistSession: spec.providerSession?.persistence === "ephemeral" ? false : undefined,
+    spawnClaudeCodeProcess: spawnClaudeCodeProcessGroup,
     env: process.env,
     ...(claudeExecutable !== undefined
       ? { pathToClaudeCodeExecutable: claudeExecutable }
       : {}),
   });
+}
+
+function spawnClaudeCodeProcessGroup(
+  options: Parameters<NonNullable<ClaudeOptions["spawnClaudeCodeProcess"]>>[0],
+): ReturnType<NonNullable<ClaudeOptions["spawnClaudeCodeProcess"]>> {
+  const child = spawnInProcessGroup(options.command, options.args, {
+    cwd: options.cwd,
+    env: options.env,
+    stdio: ["pipe", "pipe", "ignore"],
+  });
+  attachAbortSignalToProcessGroup(child, options.signal);
+  if (child.stdin === null || child.stdout === null) {
+    throw new Error("Claude process group spawn did not create stdio pipes");
+  }
+  return {
+    stdin: child.stdin,
+    stdout: child.stdout,
+    get killed() {
+      return child.killed;
+    },
+    get exitCode() {
+      return child.exitCode;
+    },
+    kill: (signal) => {
+      void terminateProcessGroup(child, { signal }).catch(() => undefined);
+      return true;
+    },
+    on: (event, listener) => {
+      child.on(event, listener);
+    },
+    once: (event, listener) => {
+      child.once(event, listener);
+    },
+    off: (event, listener) => {
+      child.off(event, listener);
+    },
+  };
 }
 
 function toClaudeAgents(

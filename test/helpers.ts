@@ -1,4 +1,12 @@
-import { mkdtemp, rm, mkdir, writeFile, utimes } from "node:fs/promises";
+import {
+  chmod,
+  mkdtemp,
+  rm,
+  mkdir,
+  readFile,
+  writeFile,
+  utimes,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -66,4 +74,104 @@ export async function writePage(
     await utimes(path, opts.mtime, opts.mtime);
   }
   return path;
+}
+
+export async function createProcessTreeFixture(prefix: string): Promise<string> {
+  const dir = await mkdtemp(join(tmpdir(), prefix));
+  const grandchild = join(dir, "grandchild.js");
+  const child = join(dir, "child.js");
+  await writeFile(
+    grandchild,
+    `
+if (process.argv[2] === "ignore-term") {
+  process.on("SIGTERM", () => {});
+}
+setInterval(() => {}, 1000);
+`,
+    "utf8",
+  );
+  await writeFile(
+    child,
+    `
+const { spawn } = require("node:child_process");
+const { appendFileSync } = require("node:fs");
+const { join } = require("node:path");
+
+const pidFile = process.argv[2];
+const mode = process.argv[3];
+if (mode === "ignore-term") {
+  process.on("SIGTERM", () => {});
+}
+const grandchild = spawn(process.execPath, [
+  join(__dirname, "grandchild.js"),
+  mode ?? "",
+], {
+  cwd: __dirname,
+  stdio: "ignore",
+});
+appendFileSync(pidFile, String(process.pid) + "\\n" + String(grandchild.pid) + "\\n");
+setInterval(() => {}, 1000);
+`,
+    "utf8",
+  );
+  await chmod(child, 0o755);
+  await chmod(grandchild, 0o755);
+  return dir;
+}
+
+export async function waitForPids(
+  path: string,
+  count: number,
+  timeoutMs = 2_000,
+): Promise<number[]> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const pids = (await readFile(path, "utf8"))
+        .trim()
+        .split(/\r?\n/)
+        .filter((line) => line.length > 0)
+        .map((line) => Number(line));
+      if (pids.length >= count && pids.every((pid) => Number.isInteger(pid))) {
+        return pids;
+      }
+    } catch {
+      // The child may not have created the file yet.
+    }
+    await delay(25);
+  }
+  throw new Error(`timed out waiting for ${count} pids in ${path}`);
+}
+
+export async function waitForDead(
+  pids: number[],
+  timeoutMs = 2_000,
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (pids.every((pid) => !isProcessAlive(pid))) return;
+    await delay(25);
+  }
+}
+
+export function isProcessAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (err: unknown) {
+    return !isNoSuchProcessError(err);
+  }
+}
+
+function isNoSuchProcessError(err: unknown): boolean {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "code" in err &&
+    err.code === "ESRCH"
+  );
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
