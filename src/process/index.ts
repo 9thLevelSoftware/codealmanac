@@ -21,6 +21,11 @@ export {
   toRunView,
   writeRunRecord,
 } from "./records.js";
+export {
+  acquireRunWorkerLock,
+  oldestQueuedRun,
+  runWorkerLockPath,
+} from "./queue.js";
 export { readRunSpec, runSpecPath, writeRunSpec } from "./spec.js";
 export {
   diffPageSnapshots,
