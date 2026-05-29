@@ -3,6 +3,7 @@ import type { ToolRequest } from "./tools.js";
 
 export type HarnessProviderId = "claude" | "codex" | "cursor";
 export type OperationKind = "build" | "absorb" | "garden";
+export type ProviderSessionPersistence = "ephemeral" | "persistent";
 
 export interface AgentSpec {
   description: string;
@@ -31,6 +32,9 @@ export interface AgentRunSpec {
   limits?: {
     maxTurns?: number;
     maxCostUsd?: number;
+  };
+  providerSession?: {
+    persistence?: ProviderSessionPersistence;
   };
   output?: {
     schemaPath?: string;

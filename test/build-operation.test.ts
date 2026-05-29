@@ -30,6 +30,9 @@ describe("build operation", () => {
           { id: "shell" },
         ],
         limits: { maxTurns: 150 },
+        providerSession: {
+          persistence: "ephemeral",
+        },
         metadata: {
           operation: "build",
           targetKind: "repo",

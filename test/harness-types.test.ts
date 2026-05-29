@@ -47,10 +47,12 @@ describe("harness types", () => {
       systemPrompt: "system",
       prompt: "run build",
       tools: [{ id: "read" }, { id: "edit" }, { id: "shell", policy: "read-only" }],
+      providerSession: { persistence: "ephemeral" },
       metadata: { operation: "build", targetKind: "repo" },
     };
 
     expect(spec.metadata?.operation).toBe("build");
+    expect(spec.providerSession?.persistence).toBe("ephemeral");
   });
 
   it("keeps provider events independent from provider-native stream shapes", () => {

@@ -5,6 +5,7 @@ import type {
   AgentRunSpec,
   HarnessProviderId,
   OperationKind,
+  ProviderSessionPersistence,
 } from "../harness/types.js";
 import { runsDir } from "./records.js";
 
@@ -47,6 +48,13 @@ function isAgentRunSpec(value: unknown): value is AgentRunSpec {
     isProviderId((spec.provider as { id?: unknown }).id) &&
     typeof spec.cwd === "string" &&
     typeof spec.prompt === "string" &&
+    (spec.providerSession === undefined ||
+      (typeof spec.providerSession === "object" &&
+        spec.providerSession !== null &&
+        (((spec.providerSession as { persistence?: unknown }).persistence === undefined) ||
+          isProviderSessionPersistence(
+            (spec.providerSession as { persistence?: unknown }).persistence,
+          )))) &&
     (spec.metadata === undefined ||
       (typeof spec.metadata === "object" &&
         spec.metadata !== null &&
@@ -61,4 +69,10 @@ function isProviderId(value: unknown): value is HarnessProviderId {
 
 function isOperationKind(value: unknown): value is OperationKind {
   return value === "build" || value === "absorb" || value === "garden";
+}
+
+function isProviderSessionPersistence(
+  value: unknown,
+): value is ProviderSessionPersistence {
+  return value === "ephemeral" || value === "persistent";
 }

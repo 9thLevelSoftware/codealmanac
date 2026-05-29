@@ -60,6 +60,9 @@ export async function createOperationRunSpec(args: {
     limits: {
       maxTurns: DEFAULT_MAX_TURNS,
     },
+    providerSession: {
+      persistence: "ephemeral",
+    },
     metadata: {
       operation: args.operation,
       targetKind: args.targetKind,

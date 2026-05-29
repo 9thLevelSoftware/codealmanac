@@ -28,6 +28,9 @@ describe("garden operation", () => {
           { id: "shell" },
         ],
         limits: { maxTurns: 150 },
+        providerSession: {
+          persistence: "ephemeral",
+        },
         metadata: {
           operation: "garden",
           targetKind: "wiki",
