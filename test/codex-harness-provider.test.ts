@@ -24,6 +24,7 @@ describe("Codex harness provider", () => {
       systemPrompt: "system",
       prompt: "run garden",
       output: { schemaPath: "/tmp/schema.json" },
+      providerSession: { persistence: "ephemeral" },
       metadata: { operation: "garden" },
     };
 
@@ -43,6 +44,7 @@ describe("Codex harness provider", () => {
         "gpt-5.4",
         "--output-schema",
         "/tmp/schema.json",
+        "--ephemeral",
         "system\n\n---\n\nrun garden",
       ],
       env: expect.objectContaining({
@@ -366,6 +368,10 @@ rl.on("line", (line) => {
     return;
   }
   if (msg.method === "thread/start") {
+    if (msg.params.ephemeral !== true) {
+      fail("thread/start should request an ephemeral provider session");
+      return;
+    }
     send({ id: msg.id, result: { thread: { id: "thread-1" } } });
     return;
   }
@@ -408,6 +414,7 @@ rl.on("line", (line) => {
             provider: { id: "codex" },
             cwd: binDir,
             prompt: "run",
+            providerSession: { persistence: "ephemeral" },
             metadata: { operation: "garden" },
           },
           {

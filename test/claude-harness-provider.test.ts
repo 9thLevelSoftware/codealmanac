@@ -74,6 +74,9 @@ describe("Claude harness provider", () => {
         maxTurns: 12,
         maxCostUsd: 1.5,
       },
+      providerSession: {
+        persistence: "ephemeral",
+      },
       metadata: {
         operation: "absorb",
       },
@@ -141,6 +144,7 @@ describe("Claude harness provider", () => {
         maxBudgetUsd: 1.5,
         permissionMode: "dontAsk",
         includePartialMessages: true,
+        persistSession: false,
         pathToClaudeCodeExecutable: "/usr/local/bin/claude",
         env: expect.objectContaining({
           CODEALMANAC_INTERNAL_SESSION: "1",

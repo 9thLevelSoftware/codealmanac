@@ -38,6 +38,9 @@ export function buildCodexExecRequest(spec: AgentRunSpec): CodexExecRequest {
   if (spec.output?.schemaPath !== undefined) {
     args.push("--output-schema", spec.output.schemaPath);
   }
+  if (spec.providerSession?.persistence === "ephemeral") {
+    args.push("--ephemeral");
+  }
   args.push(combineCodexPrompt(spec));
   return {
     command: "codex",

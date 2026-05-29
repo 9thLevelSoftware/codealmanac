@@ -83,7 +83,12 @@ async function runClaudeHarness(
   queryFn: ClaudeQueryFn,
   resolveExecutable: () => string | undefined,
 ): Promise<HarnessResult> {
-  const options = buildClaudeOptions(spec, resolveExecutable);
+  const abortController = new AbortController();
+  const removeSignalHandlers = installAbortSignalHandlers(abortController);
+  const options = {
+    ...buildClaudeOptions(spec, resolveExecutable),
+    abortController,
+  };
   const stream = queryFn({
     prompt: spec.prompt,
     options,
@@ -134,6 +139,8 @@ async function runClaudeHarness(
     error = err instanceof Error ? err.message : String(err);
     failure = classifyClaudeFailure(error);
     await hooks?.onEvent?.({ type: "error", error, failure });
+  } finally {
+    removeSignalHandlers();
   }
 
   await hooks?.onEvent?.({
@@ -159,6 +166,20 @@ async function runClaudeHarness(
     usage,
     error,
     failure,
+  };
+}
+
+function installAbortSignalHandlers(abortController: AbortController): () => void {
+  const abort = () => {
+    if (!abortController.signal.aborted) abortController.abort();
+  };
+  process.once("SIGINT", abort);
+  process.once("SIGTERM", abort);
+  process.once("SIGHUP", abort);
+  return () => {
+    process.off("SIGINT", abort);
+    process.off("SIGTERM", abort);
+    process.off("SIGHUP", abort);
   };
 }
 
@@ -222,6 +243,7 @@ function buildClaudeOptions(
     permissionMode: "dontAsk",
     includePartialMessages: true,
     forwardSubagentText: true,
+    persistSession: spec.providerSession?.persistence === "ephemeral" ? false : undefined,
     env: {
       ...process.env,
       CODEALMANAC_INTERNAL_SESSION: "1",

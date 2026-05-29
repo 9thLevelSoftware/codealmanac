@@ -295,7 +295,7 @@ export async function runCodexAppServer(
             approvalPolicy: "never",
             sandbox: "workspace-write",
             developerInstructions: spec.systemPrompt ?? null,
-            ephemeral: true,
+            ephemeral: spec.providerSession?.persistence === "ephemeral",
           }),
         );
         const threadObj = asRecord(thread.thread);
