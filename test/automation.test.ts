@@ -472,4 +472,28 @@ describe("almanac automation — Windows Task Scheduler", () => {
       ).rejects.toThrow();
     });
   });
+
+  it("deletes an orphaned task even when no manifest exists", async () => {
+    await withTempHome(async (home) => {
+      // No install — the manifest dir never existed, but a scheduled task may
+      // still be present (manifest write failed, or the dir was deleted).
+      const deleted: string[][] = [];
+      const result = await runAutomationUninstall({
+        platform: "win32",
+        homeDir: home,
+        tasks: ["capture"],
+        exec: async (file, args) => {
+          deleted.push([file, ...args]);
+          return {}; // simulate schtasks finding and deleting the task
+        },
+      });
+
+      expect(
+        deleted.some(
+          (c) => c.includes("/Delete") && c.includes("\\CodeAlmanac\\CaptureSweep"),
+        ),
+      ).toBe(true);
+      expect(result.stdout).toContain("automation removed");
+    });
+  });
 });

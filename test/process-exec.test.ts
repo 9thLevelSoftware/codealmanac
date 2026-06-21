@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { commandExists, resolveExecutable } from "../src/process/exec.js";
+import {
+  commandExists,
+  quoteWindowsArg,
+  resolveExecutable,
+} from "../src/process/exec.js";
 
 /**
  * These tests inject `platform`, `env`, and `fileExists` so they exercise
@@ -88,6 +92,16 @@ describe("resolveExecutable — Windows", () => {
     expect(resolved).toBe(shim);
   });
 
+  it("strips surrounding quotes from quoted PATH entries", () => {
+    const shim = "C:\\Program Files\\nodejs\\codex.cmd";
+    const resolved = resolveExecutable("codex", {
+      platform: "win32",
+      env: { Path: '"C:\\Program Files\\nodejs"', PATHEXT: ".CMD" },
+      fileExists: (p) => p === shim,
+    });
+    expect(resolved).toBe(shim);
+  });
+
   it("falls back to a default PATHEXT when env lacks one", () => {
     const shim = "C:\\bin\\codex.cmd";
     const resolved = resolveExecutable("codex", {
@@ -107,6 +121,26 @@ describe("resolveExecutable — Windows", () => {
       fileExists: (p) => p === "C:\\Users\\dev\\AppData\\Roaming\\npm\\codex",
     });
     expect(resolved).toBeUndefined();
+  });
+});
+
+describe("quoteWindowsArg", () => {
+  it("leaves simple flags untouched", () => {
+    expect(quoteWindowsArg("--json")).toBe("--json");
+    expect(quoteWindowsArg("mcp_servers={}")).toBe("mcp_servers={}");
+  });
+
+  it("quotes args with spaces", () => {
+    expect(quoteWindowsArg("hello world")).toBe('"hello world"');
+  });
+
+  it("doubles a trailing backslash so it cannot escape the closing quote", () => {
+    // C:\a b\  ->  "C:\a b\\"   (the doubled backslash is a literal backslash)
+    expect(quoteWindowsArg("C:\\a b\\")).toBe('"C:\\a b\\\\"');
+  });
+
+  it("escapes embedded quotes and their preceding backslashes", () => {
+    expect(quoteWindowsArg('a"b')).toBe('"a\\"b"');
   });
 });
 

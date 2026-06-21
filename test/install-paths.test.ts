@@ -25,6 +25,27 @@ describe("looksEphemeralInstallPath", () => {
     ).toBe(true);
   });
 
+  it("flags the Windows npm-cache _npx location via LOCALAPPDATA", () => {
+    expect(
+      looksEphemeralInstallPath(
+        "C:\\Users\\dev\\AppData\\Local\\npm-cache\\_npx\\a1\\node_modules\\codealmanac",
+        {
+          home: "C:\\Users\\dev",
+          env: { LOCALAPPDATA: "C:\\Users\\dev\\AppData\\Local" },
+        },
+      ),
+    ).toBe(true);
+  });
+
+  it("honors npm_config_cache for the npx location", () => {
+    expect(
+      looksEphemeralInstallPath("D:\\npmcache\\_npx\\a1\\node_modules\\codealmanac", {
+        home: "C:\\Users\\dev",
+        env: { npm_config_cache: "D:\\npmcache" },
+      }),
+    ).toBe(true);
+  });
+
   it("does not flag a global install", () => {
     expect(
       looksEphemeralInstallPath("/usr/local/lib/node_modules/codealmanac", {

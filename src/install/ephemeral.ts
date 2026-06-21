@@ -7,8 +7,10 @@ import path from "node:path";
  * doctor so the two never drift.
  *
  * Recognized prefixes (cross-platform):
- *   - `~/.npm/_npx`            — npm npx cache
- *   - `~/.local/share/pnpm/dlx`— pnpm dlx cache
+ *   - `~/.npm/_npx`                       — npm npx cache (POSIX)
+ *   - `<npm cache>/_npx`                  — npm npx cache (Windows lives under
+ *                                           `%LocalAppData%\npm-cache\_npx`)
+ *   - `~/.local/share/pnpm/dlx`           — pnpm dlx cache
  *   - `%TEMP%` / `%TMP%` / `$TMPDIR` / `/tmp` / `/var/folders` — temp dirs
  */
 export function looksEphemeralInstallPath(
@@ -18,8 +20,11 @@ export function looksEphemeralInstallPath(
   if (installPath.length === 0) return false;
   const home = options.home ?? homedir();
   const env = options.env ?? process.env;
+  const npmCache = env.npm_config_cache ??
+    (env.LOCALAPPDATA !== undefined ? path.join(env.LOCALAPPDATA, "npm-cache") : undefined);
   const prefixes = [
     path.join(home, ".npm", "_npx"),
+    npmCache !== undefined ? path.join(npmCache, "_npx") : undefined,
     path.join(home, ".local", "share", "pnpm", "dlx"),
     env.TEMP,
     env.TMP,

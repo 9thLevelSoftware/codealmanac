@@ -57,6 +57,12 @@ export function getRepoAlmanacDir(cwd: string): string {
  * the home directory and would otherwise let a sandbox walk into the real
  * `~/.almanac`.
  */
+function samePath(a: string, b: string): boolean {
+  return process.platform === "win32"
+    ? a.toLowerCase() === b.toLowerCase()
+    : a === b;
+}
+
 export function findNearestAlmanacDir(startDir: string): string | null {
   const globalDir = getGlobalAlmanacDir();
   const home = homedir();
@@ -70,8 +76,9 @@ export function findNearestAlmanacDir(startDir: string): string | null {
       return current;
     }
     // Do not ascend above the user's home directory (the global
-    // `~/.almanac` was already skipped just above).
-    if (current === home) {
+    // `~/.almanac` was already skipped just above). Compare case-insensitively
+    // on Windows, where drive-letter / path casing can differ.
+    if (samePath(current, home)) {
       return null;
     }
     const parent = dirname(current);

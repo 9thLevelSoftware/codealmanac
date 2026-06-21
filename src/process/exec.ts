@@ -96,7 +96,9 @@ export function resolveExecutable(
 
   const dirs = readPath(env)
     .split(isWindows ? ";" : ":")
-    .map((dir) => dir.trim())
+    // Windows PATH entries are sometimes wrapped in double quotes to tolerate
+    // spaces; strip them so path.join doesn't embed quotes into candidates.
+    .map((dir) => dir.trim().replace(/^"+|"+$/g, ""))
     .filter((dir) => dir.length > 0);
 
   for (const dir of dirs) {
@@ -121,13 +123,18 @@ export interface CrossSpawnOptions extends SpawnOptions {
 
 /**
  * Quote an argument so it survives cmd.exe parsing. Any token containing
- * whitespace or a cmd metacharacter is wrapped in double quotes (embedded
- * quotes escaped). Used to build a verbatim cmd.exe command line.
+ * whitespace or a cmd metacharacter is wrapped in double quotes. Backslashes
+ * that precede a quote — or that trail the argument right before the closing
+ * quote — are doubled so the closing quote isn't escaped
+ * (CommandLineToArgvW / cmd.exe rules); embedded quotes are escaped.
  */
 export function quoteWindowsArg(arg: string): string {
   if (arg.length === 0) return '""';
   if (!/[\s"^&|<>()%!]/u.test(arg)) return arg;
-  return `"${arg.replaceAll('"', '\\"')}"`;
+  const escaped = arg
+    .replace(/(\\*)"/g, '$1$1\\"')
+    .replace(/(\\+)$/u, "$1$1");
+  return `"${escaped}"`;
 }
 
 const WINDOWS_SHIM_EXTENSIONS = new Set([".cmd", ".bat", ".ps1"]);

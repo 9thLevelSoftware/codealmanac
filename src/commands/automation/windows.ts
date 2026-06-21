@@ -129,9 +129,12 @@ export async function uninstallWindowsAutomation(args: {
   const removed: string[] = [];
   for (const taskId of args.taskIds) {
     const manifestPath = windowsManifestPath(taskId, args.home);
-    if (!existsSync(manifestPath)) continue;
-    await deleteWindowsTask(taskId, args.home, args.exec);
-    removed.push(manifestPath);
+    // Task names are deterministic, so attempt deletion even when the manifest
+    // is missing — otherwise an orphaned schtasks job (manifest write failed,
+    // or `~/.almanac/automation` was deleted) would keep running forever.
+    const manifestExisted = existsSync(manifestPath);
+    const deleted = await deleteWindowsTask(taskId, args.home, args.exec);
+    if (manifestExisted || deleted) removed.push(manifestPath);
   }
   if (removed.length === 0) {
     return { stdout: "almanac: automation not installed\n", stderr: "", exitCode: 0 };
@@ -161,13 +164,17 @@ async function deleteWindowsTask(
   taskId: ScheduledTaskId,
   home: string,
   exec: ExecFn,
-): Promise<void> {
+): Promise<boolean> {
+  let deleted = false;
   try {
     await exec("schtasks", ["/Delete", "/TN", WINDOWS_TASK_NAMES[taskId], "/F"]);
+    deleted = true;
   } catch {
-    // Already absent is still a successful disable/uninstall.
+    // schtasks exits non-zero when the task does not exist; treat as
+    // "nothing to delete" rather than an error.
   }
   await rm(windowsManifestPath(taskId, home), { force: true });
+  return deleted;
 }
 
 function formatWindowsInstall(
@@ -287,5 +294,10 @@ function windowsTaskCommand(
 function quoteWindowsTaskArg(arg: string): string {
   if (arg.length === 0) return '""';
   if (!/[\s"\\:]/u.test(arg)) return arg;
-  return `"${arg.replaceAll('"', '\\"')}"`;
+  // Double backslashes before a quote and any trailing backslash run so the
+  // closing quote isn't escaped; escape embedded quotes.
+  const escaped = arg
+    .replace(/(\\*)"/g, '$1$1\\"')
+    .replace(/(\\+)$/u, "$1$1");
+  return `"${escaped}"`;
 }
