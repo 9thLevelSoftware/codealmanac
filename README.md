@@ -5,16 +5,16 @@
 <p align="center">
   <a href="https://www.npmjs.com/package/codealmanac"><img alt="npm version" src="https://img.shields.io/npm/v/codealmanac?label=npm&color=2ea043"></a>
   <a href="https://www.npmjs.com/package/codealmanac"><img alt="npm downloads" src="https://img.shields.io/npm/dt/codealmanac?label=npm%20downloads&color=1f6feb"></a>
-  <a href="https://github.com/AlmanacCode/codealmanac/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/AlmanacCode/codealmanac/ci.yml?branch=main&label=ci"></a>
-  <a href="https://github.com/AlmanacCode/codealmanac/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/AlmanacCode/codealmanac?style=flat&logo=github"></a>
-  <a href="https://github.com/AlmanacCode/codealmanac/commits/main"><img alt="Last commit" src="https://img.shields.io/github/last-commit/AlmanacCode/codealmanac"></a>
+  <a href="https://github.com/9thLevelSoftware/codealmanac/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/9thLevelSoftware/codealmanac/ci.yml?branch=main&label=ci"></a>
+  <a href="https://github.com/9thLevelSoftware/codealmanac/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/9thLevelSoftware/codealmanac?style=flat&logo=github"></a>
+  <a href="https://github.com/9thLevelSoftware/codealmanac/commits/main"><img alt="Last commit" src="https://img.shields.io/github/last-commit/9thLevelSoftware/codealmanac"></a>
   <img alt="Node support" src="https://img.shields.io/badge/node-20%20%7C%2022%2B-1f6feb">
   <a href="./LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-df7b40"></a>
   <a href="https://usealmanac.com/code"><img alt="Website" src="https://img.shields.io/badge/website-usealmanac.com%2Fcode-24292f"></a>
-  <a href="https://github.com/AlmanacCode/codealmanac"><img alt="GitHub repository" src="https://img.shields.io/badge/GitHub-AlmanacCode%2Fcodealmanac-24292f?logo=github"></a>
+  <a href="https://github.com/9thLevelSoftware/codealmanac"><img alt="GitHub repository" src="https://img.shields.io/badge/GitHub-9thLevelSoftware%2Fcodealmanac-24292f?logo=github"></a>
 </p>
 
-Almanac gives AI coding agents durable project memory. It turns the decisions, flows, invariants, and gotchas from real engineering sessions into a local wiki that lives with your repo.
+Almanac gives AI coding agents durable project memory. It turns the decisions, flows, invariants, incidents, and gotchas from real engineering sessions into a local wiki that lives with your repo.
 
 Use it when code answers "what exists" but not "why it exists," when a new agent needs subsystem context before editing, or when important implementation knowledge keeps disappearing into old chat transcripts.
 
@@ -61,7 +61,7 @@ Works on macOS, Linux, and native Windows (PowerShell or cmd) — WSL counts as 
 Want to see the shape before running an agent over your own repo?
 
 ```bash
-git clone https://github.com/AlmanacCode/codealmanac.git
+git clone https://github.com/9thLevelSoftware/codealmanac.git
 cd codealmanac/examples/sample-repo
 
 npx codealmanac search "checkout"
@@ -266,7 +266,7 @@ Cloning a repo that already has `.almanac/` committed auto-registers it on the f
 ## Contributing
 
 ```bash
-git clone https://github.com/AlmanacCode/codealmanac.git
+git clone https://github.com/9thLevelSoftware/codealmanac.git
 cd codealmanac
 npm install
 npm run build
@@ -280,7 +280,7 @@ If Almanac helps your agents understand a codebase faster, please consider givin
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/chart?repos=AlmanacCode/codealmanac&type=date&legend=top-left)](https://www.star-history.com/?repos=AlmanacCode%2Fcodealmanac&type=date&legend=top-left)
+[![Star History Chart](https://api.star-history.com/chart?repos=9thLevelSoftware/codealmanac&type=date&legend=top-left)](https://www.star-history.com/?repos=9thLevelSoftware%2Fcodealmanac&type=date&legend=top-left)
 
 ## Status
 
